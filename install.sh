@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 ##########################################
@@ -7,52 +7,69 @@ set -e
 # www.zonatsolutions.com
 ##########################################
 
+
+
 set -e
+
+echo "🚀 Fancy Terminal Installer"
 
 USER_HOME="$HOME"
 CONFIG_DIR="$HOME/.config"
 
-echo "Updating packages..."
+mkdir -p "$CONFIG_DIR"
+
+echo "📦 Updating packages..."
 sudo apt update
 
-echo "Installing ZSH and plugins..."
-sudo apt install -y zsh zsh-autosuggestions zsh-syntax-highlighting git curl
+echo "📦 Installing dependencies..."
+sudo apt install -y \
+zsh \
+git \
+curl \
+kitty \
+fastfetch \
+zsh-autosuggestions \
+zsh-syntax-highlighting \
+fonts-firacode
 
-echo "Cloning zsh-autocomplete..."
-git clone --depth 1 https://github.com/marlonrichert/zsh-autocomplete "$HOME/zsh-autocomplete"
+echo "⬇️ Installing zsh-autocomplete..."
+if [ ! -d "$HOME/zsh-autocomplete" ]; then
+    git clone --depth 1 https://github.com/marlonrichert/zsh-autocomplete \
+    "$HOME/zsh-autocomplete"
+fi
 
-echo "Installing Starship prompt..."
-curl -sS https://starship.rs/install.sh | sh -s -- -y
+echo "⭐ Installing Starship prompt..."
+if ! command -v starship &> /dev/null; then
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
+fi
 
 mkdir -p "$CONFIG_DIR"
 
-echo "Applying Starship theme..."
+echo "🎨 Applying Starship theme..."
 starship preset catppuccin-powerline -o "$CONFIG_DIR/starship.toml"
 
-echo "Updating Starship palette..."
 if ! grep -q "palette" "$CONFIG_DIR/starship.toml"; then
     echo "palette = 'catppuccin_latte'" >> "$CONFIG_DIR/starship.toml"
-else
-    sed -i "s/palette *= *.*/palette = 'catppuccin_latte'/" "$CONFIG_DIR/starship.toml"
 fi
 
-echo "Updating .zshrc configuration..."
+echo "⚙️ Configuring ZSH..."
 
 touch "$HOME/.zshrc"
 
-grep -qxF 'eval "$(starship init zsh)"' ~/.zshrc || echo 'eval "$(starship init zsh)"' >> ~/.zshrc
-grep -qxF 'source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh' ~/.zshrc || echo 'source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh' >> ~/.zshrc
-grep -qxF "source $HOME/zsh-autocomplete/zsh-autocomplete.plugin.zsh" ~/.zshrc || echo "source $HOME/zsh-autocomplete/zsh-autocomplete.plugin.zsh" >> ~/.zshrc
-grep -qxF 'source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' ~/.zshrc || echo 'source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' >> ~/.zshrc
+add_line () {
+grep -qxF "$1" "$HOME/.zshrc" || echo "$1" >> "$HOME/.zshrc"
+}
 
-echo "Installing Kitty terminal..."
-sudo apt install -y kitty
+add_line 'eval "$(starship init zsh)"'
+add_line 'source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh'
+add_line "source $HOME/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+add_line 'source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh'
+
+echo "🖥 Configuring Kitty..."
 
 mkdir -p "$CONFIG_DIR/kitty"
 
-echo "Writing Kitty configuration..."
-
-cat <<EOF > "$CONFIG_DIR/kitty/kitty.conf"
+cat > "$CONFIG_DIR/kitty/kitty.conf" <<EOF
 font_family  FiraCodeNerdFont-Regular
 font_size  12.0
 cursor_trail  100
@@ -68,10 +85,7 @@ shell  /usr/bin/zsh
 shell zsh -ic "fastfetch -c ~/.config/fastfetch/ordered-sections.jsonc; exec zsh"
 EOF
 
-echo "Installing Fastfetch..."
-sudo apt install -y fastfetch
-
-echo "Downloading fastfetch configuration from GitHub..."
+echo "⬇️ Installing fastfetch config..."
 
 TMP_DIR=$(mktemp -d)
 
@@ -83,8 +97,11 @@ cp -r "$TMP_DIR/fastfetch" "$CONFIG_DIR/"
 
 rm -rf "$TMP_DIR"
 
-echo "Changing default shell to zsh..."
+echo "🐚 Setting ZSH as default shell..."
 chsh -s $(which zsh)
 
-echo "Setup completed!"
-echo "Restart your terminal or run: exec zsh"
+echo ""
+echo "✅ Installation Complete!"
+echo "Restart terminal or run:"
+echo ""
+echo "exec zsh"
